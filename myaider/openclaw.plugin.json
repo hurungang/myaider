@@ -1,0 +1,36 @@
+{
+  "id": "myaider",
+  "name": "openclaw-plugin-myaider",
+  "version": "0.1.0",
+  "label": "MyAider MCP",
+  "description": "Connects OpenClaw to the MyAider MCP server (myaider.ai), registers the myaider_mcp agent tool, and provides skills for MCP access and dynamic skill import/upgrade.",
+  "extensions": ["./src/index.js"],
+  "slots": ["tool"],
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable or disable the MyAider MCP plugin"
+      },
+      "url": {
+        "type": "string",
+        "description": "Your MyAider MCP server URL. Obtain it from https://www.myaider.ai/mcp"
+      }
+    },
+    "required": ["url"]
+  },
+  "uiHints": {
+    "url": {
+      "label": "MyAider MCP Server URL",
+      "placeholder": "https://mcp.myaider.ai/your-token/mcp",
+      "sensitive": false
+    },
+    "enabled": {
+      "label": "Enabled"
+    }
+  }
+}
