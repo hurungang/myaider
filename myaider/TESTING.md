@@ -7,6 +7,12 @@ Step-by-step validation guide for the `openclaw-plugin-myaider` plugin.
 ## 1. Install the plugin
 
 ```bash
+openclaw plugins install openclaw-plugin-myaider
+```
+
+Or from source:
+
+```bash
 cd ~/.openclaw/extensions/
 git clone https://github.com/hurungang/openclaw-plugins
 cd openclaw-plugins/myaider

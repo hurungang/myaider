@@ -38,17 +38,13 @@ myaider/
 
 ## Installation
 
-### Via OpenClaw CLI
+### Via OpenClaw CLI (recommended)
 
 ```bash
-# Install from the local directory
-openclaw plugins install ./myaider
-
-# Or install from GitHub (once published)
-openclaw plugins install @myaider/openclaw-plugin
+openclaw plugins install openclaw-plugin-myaider
 ```
 
-### Manual installation
+### From source
 
 ```bash
 cd ~/.openclaw/extensions/

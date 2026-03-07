@@ -4,6 +4,13 @@
   "description": "OpenClaw plugin for MyAider MCP integration — connect to myaider.ai MCP, invoke tools, and import dynamic skills into OpenClaw.",
   "type": "module",
   "main": "src/index.js",
+  "files": [
+    "src",
+    "skills",
+    "openclaw.plugin.json",
+    "README.md",
+    "TESTING.md"
+  ],
   "keywords": [
     "openclaw",
     "plugin",
@@ -25,6 +32,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0"
   },
   "scripts": {
+    "test": "node --test test/http-transport.test.js test/manager.test.js",
     "prepare": "echo 'No build step required (ESM JS)'"
   }
 }
