@@ -34,5 +34,8 @@
   "scripts": {
     "test": "node --test test/http-transport.test.js test/manager.test.js",
     "prepare": "echo 'No build step required (ESM JS)'"
+  },
+  "openclaw": {
+    "extensions": ["./src/index.js"]
   }
 }
