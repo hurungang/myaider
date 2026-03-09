@@ -18,7 +18,7 @@ This skill enables your OpenClaw agent to connect to the [MyAider](https://www.m
 
 ## Prerequisites
 
-The **openclaw-plugin-myaider** plugin must be installed and configured with your MyAider MCP URL:
+The **myaider** plugin must be installed and configured with your MyAider MCP URL:
 
 1. Visit **https://www.myaider.ai/mcp** to obtain your personal MCP server URL.
 2. Add the following to your `openclaw.json`:

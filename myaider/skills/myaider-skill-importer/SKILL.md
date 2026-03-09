@@ -4,7 +4,7 @@ description: >
   Import, create, and upgrade skills from MyAider MCP. Use this skill whenever
   the user wants to import their MyAider MCP skills into agent skills, or
   upgrade/update existing MyAider skills to the latest version. This skill
-  uses the myaider_mcp tool (provided by openclaw-plugin-myaider) to retrieve
+  uses the myaider_mcp tool (provided by myaider) to retrieve
   available skills, presents them to the user for selection, and uses
   skill-creator to create or update each selected skill properly.
 compatibility: []
@@ -17,7 +17,7 @@ Automate the process of importing skills from the MyAider MCP server into agent 
 
 ## Prerequisites
 
-The **openclaw-plugin-myaider** plugin must be installed and configured. If the `myaider_mcp` tool is not available or returns a configuration error, direct the user to:
+The **myaider** plugin must be installed and configured. If the `myaider_mcp` tool is not available or returns a configuration error, direct the user to:
 
 1. Install the plugin: `openclaw plugins install ./myaider` (or from GitHub)
 2. Configure their MCP URL in `openclaw.json`:
@@ -89,7 +89,7 @@ For each skill the user wants to import:
    [full usage instructions from the myaider skill]
 
    ## How to Invoke Tools
-   This skill's tools are accessed via the `myaider_mcp` agent tool (registered by openclaw-plugin-myaider).
+   This skill's tools are accessed via the `myaider_mcp` agent tool (registered by myaider).
    Use: myaider_mcp(action="call", tool="<tool-name>", args={...})
 
    ## Tools

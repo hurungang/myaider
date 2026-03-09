@@ -31,7 +31,7 @@ See the [myaider plugin README](./myaider/README.md) for full documentation.
 ### Install a plugin via OpenClaw CLI (recommended)
 
 ```bash
-openclaw plugins install openclaw-plugin-myaider
+openclaw plugins install myaider
 ```
 
 ### Install from source

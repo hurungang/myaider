@@ -1,4 +1,4 @@
-# openclaw-plugin-myaider
+# myaider
 
 An OpenClaw plugin that integrates with [MyAider](https://www.myaider.ai) via MCP (Model Context Protocol). It implements a native MCP client and provides two skills:
 
@@ -41,7 +41,7 @@ myaider/
 ### Via OpenClaw CLI (recommended)
 
 ```bash
-openclaw plugins install openclaw-plugin-myaider
+openclaw plugins install myaider
 ```
 
 ### From source

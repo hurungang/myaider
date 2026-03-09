@@ -1,13 +1,13 @@
 # Testing the MyAider Plugin in OpenClaw
 
-Step-by-step validation guide for the `openclaw-plugin-myaider` plugin.
+Step-by-step validation guide for the `myaider` plugin.
 
 ---
 
 ## 1. Install the plugin
 
 ```bash
-openclaw plugins install openclaw-plugin-myaider
+openclaw plugins install myaider
 ```
 
 Or from source:
