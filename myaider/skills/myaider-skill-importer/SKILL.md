@@ -50,7 +50,7 @@ Also check if `skill-creator` skill is available; if not, ask the user to instal
 
 ### Step 1 — REQUIRED: Get Available Skills
 
-Call the `myaider_mcp` tool with `action=get_skills` (which invokes `get_myaider_skills` on the MyAider MCP server) to retrieve all available skills.
+Call the `myaider_mcp` tool with `action=call` and `tool=get_myaider_skills` to retrieve all available skills.
 
 ### Step 2 — REQUIRED: Present Skills to User
 Present the list of skills to the user with their descriptions. Ask them to choose:
@@ -129,7 +129,7 @@ Trigger this workflow when the user asks to **upgrade**, **update**, or **sync**
 Same as Step 0. If the `myaider_mcp` tool returns a configuration error, show prerequisites and stop.
 
 ### Upgrade Step 1 — Fetch remote update info
-Call `myaider_mcp` with `action=get_skill_updates` (which invokes `get_myaider_skill_updates`). This returns the latest skill definitions with their `updated_at` timestamps.
+Call `myaider_mcp` with `action=call` and `tool=get_myaider_skill_updates`. This returns the latest skill definitions with their `updated_at` timestamps.
 
 ### Upgrade Step 2 — Read local MyAider skills
 Find all locally installed skills that have `source: myaider` in their YAML frontmatter. For each, read the `updated_at` value. Build a map of `skill-name → local updated_at`.
@@ -159,8 +159,8 @@ Provide a final report:
 
 ## Important Constraints
 - Always use the `myaider_mcp` agent tool — never call MCP server URLs directly
-- Always call `myaider_mcp(action="get_skills")` after confirming the plugin is configured — do NOT guess what skills are available
-- **Always extract and include FULL tool descriptions and schemas** from the `get_skills` result — this optimizes token usage; created skills should NOT need MCP introspection at runtime
+- Always call `myaider_mcp(action="call", tool="get_myaider_skills")` after confirming the plugin is configured — do NOT guess what skills are available
+- **Always extract and include FULL tool descriptions and schemas** from the `get_myaider_skills` result — this optimizes token usage; created skills should NOT need MCP introspection at runtime
 - Always include `source: myaider` and `updated_at` in the YAML frontmatter of every created or upgraded skill — these fields are required for the upgrade workflow
 - Always wait for user confirmation before creating or upgrading skills
 - Create/upgrade skills one at a time using skill-creator

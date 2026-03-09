@@ -126,10 +126,10 @@ describe('myaider_mcp action=list', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: action=get_skills
+// Tests: action=call get_myaider_skills
 // ---------------------------------------------------------------------------
 
-describe('myaider_mcp action=get_skills', () => {
+describe('myaider_mcp action=call get_myaider_skills', () => {
   let server;
   let api;
 
@@ -145,7 +145,7 @@ describe('myaider_mcp action=get_skills', () => {
   });
 
   it('returns skills from the mock server', async () => {
-    const result = await callMcpTool(api, { action: 'get_skills' });
+    const result = await callMcpTool(api, { action: 'call', tool: 'get_myaider_skills', args: {} });
     assert.equal(result.isError, undefined, `Unexpected error: ${result.content?.[0]?.text}`);
     const skills = JSON.parse(result.content[0].text);
     assert.equal(skills.length, MOCK_SKILLS.length);
@@ -154,10 +154,10 @@ describe('myaider_mcp action=get_skills', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: action=get_skill_updates
+// Tests: action=call get_myaider_skill_updates
 // ---------------------------------------------------------------------------
 
-describe('myaider_mcp action=get_skill_updates', () => {
+describe('myaider_mcp action=call get_myaider_skill_updates', () => {
   let server;
   let api;
 
@@ -173,7 +173,7 @@ describe('myaider_mcp action=get_skill_updates', () => {
   });
 
   it('returns skill update info from the mock server', async () => {
-    const result = await callMcpTool(api, { action: 'get_skill_updates' });
+    const result = await callMcpTool(api, { action: 'call', tool: 'get_myaider_skill_updates', args: {} });
     assert.equal(result.isError, undefined, `Unexpected error: ${result.content?.[0]?.text}`);
     const updates = JSON.parse(result.content[0].text);
     assert.equal(updates.length, MOCK_SKILL_UPDATES.length);
@@ -256,7 +256,7 @@ describe('myaider_mcp — connection idempotency', () => {
     // Two consecutive calls should both succeed (no "already initialized" error)
     const [r1, r2] = await Promise.all([
       callMcpTool(api, { action: 'list' }),
-      callMcpTool(api, { action: 'get_skills' }),
+      callMcpTool(api, { action: 'call', tool: 'get_myaider_skills', args: {} }),
     ]);
     assert.equal(r1.isError, undefined);
     assert.equal(r2.isError, undefined);

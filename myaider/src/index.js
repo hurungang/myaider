@@ -2,8 +2,7 @@
  * MyAider MCP Plugin for OpenClaw
  *
  * Registers an `myaider_mcp` agent tool that lets OpenClaw agents connect to
- * the MyAider MCP server and invoke its tools (list, call, get_skills,
- * get_skill_updates).
+ * the MyAider MCP server and invoke its tools (list, call).
  *
  * Configuration (in openclaw.json):
  *   plugins.entries.myaider.config.url   — MyAider MCP server URL
@@ -129,21 +128,17 @@ export default function register(api) {
     label: 'MyAider MCP',
     description:
       'Connect to the MyAider MCP server and invoke its tools. ' +
-      'Use action=list to discover available tools, then action=call to invoke one. ' +
-      'Use action=get_skills to retrieve available MyAider skills, and ' +
-      'action=get_skill_updates to check for updated skill versions.',
+      'Use action=list to discover available tools, then action=call to invoke one.',
     parameters: {
       type: 'object',
       additionalProperties: false,
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'call', 'get_skills', 'get_skill_updates'],
+          enum: ['list', 'call'],
           description:
             'list — list all available tools on the MyAider MCP server; ' +
-            'call — invoke a specific tool by name; ' +
-            'get_skills — shortcut to call get_myaider_skills (returns all available skills); ' +
-            'get_skill_updates — shortcut to call get_myaider_skill_updates (returns skills with updated_at timestamps)',
+            'call — invoke a specific tool by name',
         },
         tool: {
           type: 'string',
@@ -169,18 +164,6 @@ export default function register(api) {
                 ? JSON.stringify(tools, null, 2)
                 : 'No tools available. Verify the MyAider MCP URL in your configuration.';
             return { content: [{ type: 'text', text }], details: { tools } };
-          }
-
-          case 'get_skills': {
-            const result = await manager.callTool('get_myaider_skills', {});
-            const text = formatMcpResult(result);
-            return { content: [{ type: 'text', text }], details: result };
-          }
-
-          case 'get_skill_updates': {
-            const result = await manager.callTool('get_myaider_skill_updates', {});
-            const text = formatMcpResult(result);
-            return { content: [{ type: 'text', text }], details: result };
           }
 
           case 'call': {
