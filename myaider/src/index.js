@@ -135,10 +135,12 @@ export default function register(api) {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'call'],
+          enum: ['list', 'call', 'get_skills', 'get_skill_updates'],
           description:
             'list — list all available tools on the MyAider MCP server; ' +
-            'call — invoke a specific tool by name',
+            'call — invoke a specific tool by name; ' +
+            'get_skills — shortcut to call get_myaider_skills; ' +
+            'get_skill_updates — shortcut to call get_myaider_skill_updates',
         },
         tool: {
           type: 'string',
@@ -172,6 +174,18 @@ export default function register(api) {
               throw new Error('tool is required for action=call');
             }
             const result = await manager.callTool(toolName, params.args ?? {});
+            const text = formatMcpResult(result);
+            return { content: [{ type: 'text', text }], details: result };
+          }
+
+          case 'get_skills': {
+            const result = await manager.callTool('get_myaider_skills', {});
+            const text = formatMcpResult(result);
+            return { content: [{ type: 'text', text }], details: result };
+          }
+
+          case 'get_skill_updates': {
+            const result = await manager.callTool('get_myaider_skill_updates', {});
             const text = formatMcpResult(result);
             return { content: [{ type: 'text', text }], details: result };
           }

@@ -1,60 +1,68 @@
 ---
 name: myaider-skill-importer
 description: >
-  Import, create, and upgrade skills from MyAider MCP. Use this skill whenever
-  the user wants to import their MyAider MCP skills into agent skills, or
-  upgrade/update existing MyAider skills to the latest version. This skill
-  uses the myaider_mcp tool (provided by myaider) to retrieve
-  available skills, presents them to the user for selection, and uses
-  skill-creator to create or update each selected skill properly.
+  Import, download, add, create, and upgrade skills from MyAider MCP. Use this skill
+  whenever the user wants to import, download, add, or install their MyAider MCP skills
+  into agent skills, or upgrade/update/sync existing MyAider skills to the latest version.
+  This skill checks if the myaider plugin is installed and configured, retrieves available
+  skills, presents them to the user for selection, and uses skill-creator to create or
+  update each selected skill properly.
 compatibility: []
 ---
 
 # MyAider Skill Importer
 
 ## Purpose
-Automate the process of importing skills from the MyAider MCP server into agent skills. This skill retrieves available skills via the `myaider_mcp` tool, lets the user choose which ones to import, and creates proper skill files for each using the existing skill-creator skill.
-
-## Prerequisites
-
-The **myaider** plugin must be installed and configured. If the `myaider_mcp` tool is not available or returns a configuration error, direct the user to:
-
-1. Install the plugin: `openclaw plugins install ./myaider` (or from GitHub)
-2. Configure their MCP URL in `openclaw.json`:
-   ```json
-   {
-     "plugins": {
-       "entries": {
-         "myaider": {
-           "enabled": true,
-           "config": { "url": "https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>" }
-         }
-       }
-     }
-   }
-   ```
-3. Get their URL from **https://www.myaider.ai/mcp**
-4. Restart: `openclaw gateway restart`
-
-Also check if `skill-creator` skill is available; if not, ask the user to install it.
+Automate the process of importing skills from the MyAider MCP server into agent skills. This skill retrieves available skills via the `myaider_mcp` tool (provided by the myaider plugin), lets the user choose which ones to import, and creates proper skill files for each using the existing skill-creator skill.
 
 ## MANDATORY WORKFLOW
 
 ### Step 0 — REQUIRED: Verify plugin and skill-creator availability
 
-1. **Check the `myaider_mcp` tool** is available by calling it with `action=list`:
-   - If it returns an error about missing configuration, show the prerequisites above and stop.
-   - If it succeeds, proceed silently to Step 1.
+#### Phase A — Check the myaider plugin
 
-2. **Check skill-creator** is available. If not, ask the user to install it.
+Call `myaider_mcp` with `{ "action": "list" }` to verify the plugin is installed and configured:
+
+- **Success** (returns a list of tools) → proceed silently to Phase B.
+- **Error / plugin not available** → inform the user:
+
+  > The **myaider** plugin doesn't appear to be installed or configured.
+  > To use this skill, set up the myaider plugin first:
+  >
+  > 1. Install the myaider OpenClaw plugin
+  > 2. Configure your MCP URL in `openclaw.json`:
+  >    ```json
+  >    {
+  >      "plugins": {
+  >        "entries": {
+  >          "myaider": {
+  >            "enabled": true,
+  >            "config": { "url": "https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>" }
+  >          }
+  >        }
+  >      }
+  >    }
+  >    ```
+  > 3. Get your URL from **https://www.myaider.ai/mcp**
+  > 4. Restart: `openclaw gateway restart`
+
+  Do NOT proceed until the user confirms the plugin is configured.
+
+#### Phase B — Check skill-creator
+
+Check if the `skill-creator` skill is available. If not, ask the user to install it before continuing.
 
 ### Step 1 — REQUIRED: Get Available Skills
 
-Call the `myaider_mcp` tool with `action=call` and `tool=get_myaider_skills` to retrieve all available skills.
+Call `myaider_mcp` with:
+```json
+{ "action": "call", "tool": "get_myaider_skills", "args": {} }
+```
+to retrieve all available skills from MyAider.
 
 ### Step 2 — REQUIRED: Present Skills to User
 Present the list of skills to the user with their descriptions. Ask them to choose:
-- "All" - import every skill
+- "All" — import every skill
 - Or specify which specific skills they want (by name)
 
 Wait for user confirmation before proceeding.
@@ -62,14 +70,14 @@ Wait for user confirmation before proceeding.
 ### Step 3 — REQUIRED: For Each Selected Skill
 For each skill the user wants to import:
 
-1. **Extract the skill specification** from the `get_skills` result:
+1. **Extract the skill specification** from the `get_myaider_skills` result:
    - Skill name
    - Description (from the Usage Instructions or summary)
    - Usage Instructions (the main content)
    - **Tools with FULL usage details**: Extract each tool's name, description, and parameter schema from the "Tools" section in the result
 
 2. **Create a properly formatted skill using skill-creator**:
-   YOU MUST create the skill automatically instead of ask the user to do it manually. YOU MUST use the Skill tool to invoke `skill-creator:skill-creator` with this template:
+   YOU MUST create the skill automatically instead of asking the user to do it manually. YOU MUST use the Skill tool to invoke `skill-creator:skill-creator` with this template:
 
    ```
    Create a new skill called "[skill-name]" based on the following specification:
@@ -78,7 +86,7 @@ For each skill the user wants to import:
    [skill-name]
 
    ## Description
-   [description - make it comprehensive with triggering guidance]
+   [description — make it comprehensive with triggering guidance]
 
    ## Metadata
    Add the following fields to the skill's YAML frontmatter (in addition to name and description):
@@ -89,27 +97,27 @@ For each skill the user wants to import:
    [full usage instructions from the myaider skill]
 
    ## How to Invoke Tools
-   This skill's tools are accessed via the `myaider_mcp` agent tool (registered by myaider).
-   Use: myaider_mcp(action="call", tool="<tool-name>", args={...})
+   This skill's tools are accessed via the `myaider_mcp` agent tool (registered by the myaider plugin).
+   Use: myaider_mcp with { "action": "call", "tool": "<tool-name>", "args": { ... } }
 
    ## Tools
    The following tools are available via myaider_mcp. Include their full descriptions and parameter
    schemas to optimize token usage (no MCP introspection needed at runtime):
 
    ### [tool-name-1]
-   [full tool description from get_skills result]
+   [full tool description from get_myaider_skills result]
 
    **Parameters:**
-   [parameter schema - include all parameters with their types, required/optional status, and descriptions]
+   [parameter schema — include all parameters with their types, required/optional status, and descriptions]
 
    ### [tool-name-2]
-   [full tool description from get_skills result]
+   [full tool description from get_myaider_skills result]
 
    **Parameters:**
-   [parameter schema - include all parameters with their types, required/optional status, and descriptions]
+   [parameter schema — include all parameters with their types, required/optional status, and descriptions]
    ```
 
-   **Critical**: The extracted tool descriptions and schemas must be included directly in the skill to avoid overhead. The created skill should invoke tools via `myaider_mcp(action="call", tool="<name>", args={...})`.
+   **Critical**: The extracted tool descriptions and schemas must be included directly in the skill to avoid overhead. The created skill should invoke tools via `myaider_mcp` with `{ "action": "call", "tool": "<name>", "args": { ... } }`.
 
 3. **Confirm creation** to the user after each skill is created
 
@@ -126,10 +134,14 @@ After all selected skills are created, provide a summary:
 Trigger this workflow when the user asks to **upgrade**, **update**, or **sync** their MyAider skills.
 
 ### Upgrade Step 0 — Verify plugin availability
-Same as Step 0. If the `myaider_mcp` tool returns a configuration error, show prerequisites and stop.
+Same as Step 0. If `myaider_mcp` with `{ "action": "list" }` returns an error, show setup instructions and stop.
 
 ### Upgrade Step 1 — Fetch remote update info
-Call `myaider_mcp` with `action=call` and `tool=get_myaider_skill_updates`. This returns the latest skill definitions with their `updated_at` timestamps.
+Call `myaider_mcp` with:
+```json
+{ "action": "call", "tool": "get_myaider_skill_updates", "args": {} }
+```
+This returns the latest skill definitions with their `updated_at` timestamps.
 
 ### Upgrade Step 2 — Read local MyAider skills
 Find all locally installed skills that have `source: myaider` in their YAML frontmatter. For each, read the `updated_at` value. Build a map of `skill-name → local updated_at`.
@@ -159,8 +171,10 @@ Provide a final report:
 
 ## Important Constraints
 - Always use the `myaider_mcp` agent tool — never call MCP server URLs directly
-- Always call `myaider_mcp(action="call", tool="get_myaider_skills")` after confirming the plugin is configured — do NOT guess what skills are available
+- Always call `myaider_mcp` with `{ "action": "list" }` first to verify the plugin is configured — do NOT skip this check
+- Always call `myaider_mcp` with `{ "action": "call", "tool": "get_myaider_skills", "args": {} }` to retrieve skills — do NOT guess what skills are available
 - **Always extract and include FULL tool descriptions and schemas** from the `get_myaider_skills` result — this optimizes token usage; created skills should NOT need MCP introspection at runtime
+- **Always specify the exact tool call format** in created skills: `myaider_mcp` with `{ "action": "call", "tool": "<name>", "args": { ... } }`
 - Always include `source: myaider` and `updated_at` in the YAML frontmatter of every created or upgraded skill — these fields are required for the upgrade workflow
 - Always wait for user confirmation before creating or upgrading skills
 - Create/upgrade skills one at a time using skill-creator
@@ -168,6 +182,8 @@ Provide a final report:
 
 ## Example Usage
 - "Import my MyAider skills"
+- "Download skills from MyAider"
+- "Add skills from myaider"
 - "Create skills from myaider"
 - "Set up the skills from my MyAider MCP"
 - "Upgrade my MyAider skills"

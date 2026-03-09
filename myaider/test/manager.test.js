@@ -183,6 +183,63 @@ describe('myaider_mcp action=call get_myaider_skill_updates', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tests: action=get_skills (shortcut)
+// ---------------------------------------------------------------------------
+
+describe('myaider_mcp action=get_skills', () => {
+  let server;
+  let api;
+
+  before(async () => {
+    server = await startMockServer();
+    api = makeStubApi(server.url);
+    register(api);
+  });
+
+  after(async () => {
+    await api._hooks['gateway_stop']?.fn();
+    await server.stop();
+  });
+
+  it('returns skills from the mock server (shortcut)', async () => {
+    const result = await callMcpTool(api, { action: 'get_skills' });
+    assert.equal(result.isError, undefined, `Unexpected error: ${result.content?.[0]?.text}`);
+    const skills = JSON.parse(result.content[0].text);
+    assert.equal(skills.length, MOCK_SKILLS.length);
+    assert.equal(skills[0].name, MOCK_SKILLS[0].name);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: action=get_skill_updates (shortcut)
+// ---------------------------------------------------------------------------
+
+describe('myaider_mcp action=get_skill_updates', () => {
+  let server;
+  let api;
+
+  before(async () => {
+    server = await startMockServer();
+    api = makeStubApi(server.url);
+    register(api);
+  });
+
+  after(async () => {
+    await api._hooks['gateway_stop']?.fn();
+    await server.stop();
+  });
+
+  it('returns skill update info from the mock server (shortcut)', async () => {
+    const result = await callMcpTool(api, { action: 'get_skill_updates' });
+    assert.equal(result.isError, undefined, `Unexpected error: ${result.content?.[0]?.text}`);
+    const updates = JSON.parse(result.content[0].text);
+    assert.equal(updates.length, MOCK_SKILL_UPDATES.length);
+    assert.equal(updates[0].name, MOCK_SKILL_UPDATES[0].name);
+    assert.ok(updates[0].updated_at);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Tests: action=call
 // ---------------------------------------------------------------------------
 
