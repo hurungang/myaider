@@ -1,7 +1,7 @@
 {
   "id": "myaider",
   "name": "myaider",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "label": "MyAider MCP",
   "description": "Connects OpenClaw to the MyAider MCP server (myaider.ai), registers the myaider_mcp agent tool, and provides skills for MCP access and dynamic skill import/upgrade.",
   "extensions": [
