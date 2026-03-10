@@ -29,35 +29,50 @@ class MyAiderMCPManager {
     this._transport = null;
     this._tools = [];
     this._initialized = false;
+    this._connectingPromise = null;
   }
 
   async connect(url) {
     if (this._initialized) return;
 
-    // Validate and sanitise the URL before logging
-    let safeUrl = url;
+    // If a connection attempt is already in flight, wait for it rather than
+    // starting a second one.
+    if (this._connectingPromise) {
+      return this._connectingPromise;
+    }
+
+    this._connectingPromise = (async () => {
+      // Validate and sanitise the URL before logging
+      let safeUrl = url;
+      try {
+        const u = new URL(url);
+        u.password = '';
+        u.username = '';
+        safeUrl = u.toString();
+      } catch { /* keep original */ }
+
+      this._logger.info(`[MyAider MCP] Connecting to ${safeUrl}`);
+
+      this._transport = new StreamableHTTPClientTransport(url);
+      this._client = new Client(
+        { name: 'openclaw-myaider', version: '0.1.0' },
+        { capabilities: {} }
+      );
+
+      await this._client.connect(this._transport);
+
+      const { tools } = await this._client.listTools();
+      this._tools = tools;
+      this._initialized = true;
+
+      this._logger.info(`[MyAider MCP] Connected — ${tools.length} tool(s) available`);
+    })();
+
     try {
-      const u = new URL(url);
-      u.password = '';
-      u.username = '';
-      safeUrl = u.toString();
-    } catch { /* keep original */ }
-
-    this._logger.info(`[MyAider MCP] Connecting to ${safeUrl}`);
-
-    this._transport = new StreamableHTTPClientTransport(url);
-    this._client = new Client(
-      { name: 'openclaw-myaider', version: '0.1.0' },
-      { capabilities: {} }
-    );
-
-    await this._client.connect(this._transport);
-
-    const { tools } = await this._client.listTools();
-    this._tools = tools;
-    this._initialized = true;
-
-    this._logger.info(`[MyAider MCP] Connected — ${tools.length} tool(s) available`);
+      await this._connectingPromise;
+    } finally {
+      this._connectingPromise = null;
+    }
   }
 
   async callTool(name, args = {}) {
@@ -88,6 +103,7 @@ class MyAiderMCPManager {
       this._transport = null;
       this._tools = [];
       this._initialized = false;
+      this._connectingPromise = null;
     }
   }
 }
@@ -213,31 +229,7 @@ export default function register(api) {
           }
 
           case 'sync_skills': {
-            const result = await manager.callTool('get_myaider_skills', {});
-            const rawText = formatMcpResult(result);
-
-            let skills;
-            try {
-              skills = JSON.parse(rawText);
-              if (!Array.isArray(skills)) throw new TypeError('Expected an array of skills');
-            } catch (err) {
-              throw new Error(`Failed to parse skills from MyAider: ${err.message}`);
-            }
-
-            const written = [];
-            const failed = [];
-
-            for (const skill of skills) {
-              if (!skill.name) { failed.push('(unnamed skill)'); continue; }
-              try {
-                const dir = join(skillsDir, skill.name);
-                await mkdir(dir, { recursive: true });
-                await writeFile(join(dir, 'SKILL.md'), buildSkillMd(skill), 'utf-8');
-                written.push(skill.name);
-              } catch (err) {
-                failed.push(`${skill.name}: ${err.message}`);
-              }
-            }
+            const { written, failed } = await syncSkillsToDir(manager, skillsDir);
 
             const lines = [`Synced ${written.length} skill(s) to ${skillsDir}.`];
             if (written.length) lines.push(`Written: ${written.join(', ')}`);
@@ -272,12 +264,67 @@ export default function register(api) {
     { name: 'myaider-mcp-shutdown', description: 'Disconnect from MyAider MCP on shutdown' }
   );
 
+  // Auto-sync skills when the plugin loads (fire-and-forget; errors are logged, not thrown)
+  if (mcpUrl) {
+    setImmediate(async () => {
+      try {
+        await manager.connect(mcpUrl);
+        const { written, failed } = await syncSkillsToDir(manager, skillsDir);
+        api.logger.info(`[MyAider MCP] Auto-synced ${written.length} skill(s) to ${skillsDir}.`);
+        if (failed.length) {
+          api.logger.warn(`[MyAider MCP] Auto-sync: ${failed.length} failure(s): ${failed.join(', ')}`);
+        }
+      } catch (err) {
+        api.logger.warn(`[MyAider MCP] Auto-sync failed: ${err.message}`);
+      }
+    });
+  }
+
   api.logger.info('[MyAider MCP] Plugin registered');
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Fetches all skills from the MyAider MCP server and writes SKILL.md files
+ * to the given directory.  Used by both the agent-triggered sync_skills action
+ * and the automatic startup sync.
+ *
+ * @param {MyAiderMCPManager} manager - Connected MCP manager
+ * @param {string} skillsDir - Absolute path to the target skills directory
+ * @returns {Promise<{ written: string[], failed: string[], skillsDir: string }>}
+ */
+async function syncSkillsToDir(manager, skillsDir) {
+  const result = await manager.callTool('get_myaider_skills', {});
+  const rawText = formatMcpResult(result);
+
+  let skills;
+  try {
+    skills = JSON.parse(rawText);
+    if (!Array.isArray(skills)) throw new TypeError('Expected an array of skills');
+  } catch (err) {
+    throw new Error(`Failed to parse skills from MyAider: ${err.message}`);
+  }
+
+  const written = [];
+  const failed = [];
+
+  for (const skill of skills) {
+    if (!skill.name) { failed.push('(unnamed skill)'); continue; }
+    try {
+      const dir = join(skillsDir, skill.name);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'SKILL.md'), buildSkillMd(skill), 'utf-8');
+      written.push(skill.name);
+    } catch (err) {
+      failed.push(`${skill.name}: ${err.message}`);
+    }
+  }
+
+  return { written, failed, skillsDir };
+}
 
 /**
  * Converts an MCP tool result to a plain text string for the agent.
@@ -327,18 +374,29 @@ function buildSkillMd(skill) {
     `metadata: ${metadata}`,
     '---',
     '',
+    '## Dependencies',
+    '',
+    'This skill requires the **myaider** skill and the `myaider_mcp` agent tool provided by the',
+    'myaider OpenClaw plugin.',
+    '',
+    '> **Tool Call Translation** — Instructions in this skill may reference MCP tool names',
+    '> directly (e.g. `some_tool_name`). In OpenClaw these are **not** native agent tools.',
+    '> Every such reference must be routed through `myaider_mcp`:',
+    '>',
+    '> ```json',
+    '> { "action": "call", "tool": "<tool-name>", "args": { ... } }',
+    '> ```',
+    '>',
+    '> Never call MCP tool names as if they were native OpenClaw tools.',
+    '> Always use `myaider_mcp` with `action: "call"` to invoke them.',
+    '',
   ];
 
   if (skill.instructions) {
     lines.push(String(skill.instructions).trim(), '');
   }
 
-  lines.push(
-    '## How to Invoke Tools',
-    '',
-    'Use `myaider_mcp` with `{ "action": "call", "tool": "<tool-name>", "args": { ... } }`.',
-  );
-
+  // Tools section - appended as the last section
   if (Array.isArray(skill.tools) && skill.tools.length > 0) {
     lines.push('', '## Tools');
     for (const tool of skill.tools) {
