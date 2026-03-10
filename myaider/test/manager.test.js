@@ -8,6 +8,9 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startMockServer, MOCK_TOOLS, MOCK_SKILLS, MOCK_SKILL_UPDATES } from './mock-server.js';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // ---------------------------------------------------------------------------
 // Import the classes under test.
@@ -23,13 +26,16 @@ import register from '../src/index.js';
 // Stub OpenClaw API
 // ---------------------------------------------------------------------------
 
-function makeStubApi(mcpUrl) {
+function makeStubApi(mcpUrl, skillsDir) {
   const tools = {};
   const hooks = {};
   const logs = { info: [], warn: [], error: [] };
 
   const api = {
-    pluginConfig: { url: mcpUrl },
+    pluginConfig: {
+      url: mcpUrl,
+      ...(skillsDir !== undefined ? { skillsDir } : {}),
+    },
     logger: {
       info: (m) => logs.info.push(m),
       warn: (m) => logs.warn.push(m),
@@ -342,5 +348,59 @@ describe('gateway_stop hook', () => {
     const api = makeStubApi('http://127.0.0.1:9/unused');
     register(api);
     await assert.doesNotReject(() => api._hooks['gateway_stop'].fn());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: action=sync_skills
+// ---------------------------------------------------------------------------
+
+describe('myaider_mcp action=sync_skills', () => {
+  let server;
+  let api;
+  let tmpDir;
+
+  before(async () => {
+    server = await startMockServer();
+    tmpDir = await mkdtemp(join(tmpdir(), 'myaider-test-'));
+    api = makeStubApi(server.url, tmpDir);
+    register(api);
+  });
+
+  after(async () => {
+    await api._hooks['gateway_stop']?.fn();
+    await server.stop();
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns a success summary with written skill names', async () => {
+    const result = await callMcpTool(api, { action: 'sync_skills' });
+    assert.equal(result.isError, undefined, `Unexpected error: ${result.content?.[0]?.text}`);
+    assert.ok(result.content[0].text.includes('Synced'), 'summary mentions Synced');
+    assert.ok(result.details.written.includes(MOCK_SKILLS[0].name), 'skill name in written list');
+    assert.equal(result.details.failed.length, 0, 'no failures');
+  });
+
+  it('writes a SKILL.md file for each skill', async () => {
+    await callMcpTool(api, { action: 'sync_skills' });
+    const skillMdPath = join(tmpDir, MOCK_SKILLS[0].name, 'SKILL.md');
+    const content = await readFile(skillMdPath, 'utf-8');
+    assert.ok(content.includes(`name: ${MOCK_SKILLS[0].name}`), 'SKILL.md contains skill name');
+    assert.ok(content.includes('source'), 'SKILL.md contains source metadata');
+    assert.ok(content.includes('updated_at'), 'SKILL.md contains updated_at metadata');
+    assert.ok(content.includes('myaider_mcp'), 'SKILL.md references myaider_mcp tool');
+  });
+
+  it('includes instructions and tool schemas in the written SKILL.md', async () => {
+    await callMcpTool(api, { action: 'sync_skills' });
+    const skillMdPath = join(tmpDir, MOCK_SKILLS[0].name, 'SKILL.md');
+    const content = await readFile(skillMdPath, 'utf-8');
+    assert.ok(content.includes(MOCK_SKILLS[0].tools[0].name), 'SKILL.md includes tool name');
+    assert.ok(content.includes(MOCK_SKILLS[0].instructions), 'SKILL.md includes instructions');
+  });
+
+  it('details.skillsDir reflects the configured directory', async () => {
+    const result = await callMcpTool(api, { action: 'sync_skills' });
+    assert.equal(result.details.skillsDir, tmpDir);
   });
 });

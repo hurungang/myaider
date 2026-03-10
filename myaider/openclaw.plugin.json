@@ -11,7 +11,8 @@
     "tool"
   ],
   "skills": [
-    "./skills"
+    "./skills",
+    "./skills-dynamic"
   ],
   "configSchema": {
     "type": "object",

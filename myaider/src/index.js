@@ -13,6 +13,9 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from './http-transport.js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // MyAider MCP Manager
@@ -96,6 +99,12 @@ export default function register(api) {
   const config = api.pluginConfig ?? {};
   const mcpUrl = config.url;
 
+  // Directory where dynamically synced skills are written.
+  // Override via pluginConfig.skillsDir (useful for testing).
+  const skillsDir =
+    config.skillsDir ??
+    join(fileURLToPath(new URL('..', import.meta.url)), 'skills-dynamic');
+
   if (!mcpUrl) {
     api.logger.warn(
       '[MyAider MCP] No MCP URL configured. ' +
@@ -135,12 +144,14 @@ export default function register(api) {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'call', 'get_skills', 'get_skill_updates'],
+          enum: ['list', 'call', 'get_skills', 'get_skill_updates', 'sync_skills'],
           description:
             'list — list all available tools on the MyAider MCP server; ' +
             'call — invoke a specific tool by name; ' +
             'get_skills — shortcut to call get_myaider_skills; ' +
-            'get_skill_updates — shortcut to call get_myaider_skill_updates',
+            'get_skill_updates — shortcut to call get_myaider_skill_updates; ' +
+            'sync_skills — fetch all MyAider skills and write them as SKILL.md files ' +
+            'into the plugin skills-dynamic directory (no skill-creator needed)',
         },
         tool: {
           type: 'string',
@@ -190,6 +201,43 @@ export default function register(api) {
             return { content: [{ type: 'text', text }], details: result };
           }
 
+          case 'sync_skills': {
+            const result = await manager.callTool('get_myaider_skills', {});
+            const rawText = formatMcpResult(result);
+
+            let skills;
+            try {
+              skills = JSON.parse(rawText);
+              if (!Array.isArray(skills)) throw new TypeError('Expected an array of skills');
+            } catch (err) {
+              throw new Error(`Failed to parse skills from MyAider: ${err.message}`);
+            }
+
+            const written = [];
+            const failed = [];
+
+            for (const skill of skills) {
+              if (!skill.name) { failed.push('(unnamed skill)'); continue; }
+              try {
+                const dir = join(skillsDir, skill.name);
+                await mkdir(dir, { recursive: true });
+                await writeFile(join(dir, 'SKILL.md'), buildSkillMd(skill), 'utf-8');
+                written.push(skill.name);
+              } catch (err) {
+                failed.push(`${skill.name}: ${err.message}`);
+              }
+            }
+
+            const lines = [`Synced ${written.length} skill(s) to ${skillsDir}.`];
+            if (written.length) lines.push(`Written: ${written.join(', ')}`);
+            if (failed.length) lines.push(`Failed: ${failed.join(', ')}`);
+            const text = lines.join('\n');
+            return {
+              content: [{ type: 'text', text }],
+              details: { written, failed, skillsDir },
+            };
+          }
+
           default:
             throw new Error(`Unknown action: ${params.action}`);
         }
@@ -232,4 +280,65 @@ function formatMcpResult(result) {
       .join('\n') || JSON.stringify(result, null, 2);
   }
   return JSON.stringify(result, null, 2);
+}
+
+/**
+ * Generates a SKILL.md file content for a skill returned by get_myaider_skills.
+ *
+ * The format follows the AgentSkills / OpenClaw convention:
+ *   - YAML frontmatter with name, description, and single-line JSON metadata
+ *   - Optional instructions body
+ *   - Tool invocation reference
+ *   - Optional inline tool schemas (reduces runtime MCP round-trips)
+ *
+ * @param {object} skill - Skill definition from get_myaider_skills
+ * @returns {string} SKILL.md file content
+ */
+function buildSkillMd(skill) {
+  const name = skill.name ?? 'unnamed';
+  // Flatten to a single line and wrap in double quotes for safe YAML embedding.
+  // Only backslash and double-quote need escaping inside YAML double-quoted scalars.
+  const rawDesc = (skill.description ?? '').replace(/\n/g, ' ');
+  const description = '"' + rawDesc.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  const updatedAt = skill.updated_at ?? new Date().toISOString();
+
+  // metadata must be a single-line JSON object (per OpenClaw AgentSkills spec)
+  const metadata = JSON.stringify({
+    openclaw: { emoji: '🤖', homepage: 'https://www.myaider.ai' },
+    source: 'myaider',
+    updated_at: updatedAt,
+  });
+
+  const lines = [
+    '---',
+    `name: ${name}`,
+    `description: ${description}`,
+    `metadata: ${metadata}`,
+    '---',
+    '',
+  ];
+
+  if (skill.instructions) {
+    lines.push(String(skill.instructions).trim(), '');
+  }
+
+  lines.push(
+    '## How to Invoke Tools',
+    '',
+    'Use `myaider_mcp` with `{ "action": "call", "tool": "<tool-name>", "args": { ... } }`.',
+  );
+
+  if (Array.isArray(skill.tools) && skill.tools.length > 0) {
+    lines.push('', '## Tools');
+    for (const tool of skill.tools) {
+      lines.push('', `### ${tool.name}`);
+      if (tool.description) lines.push('', tool.description);
+      if (tool.inputSchema) {
+        lines.push('', '**Parameters:**', '```json', JSON.stringify(tool.inputSchema, null, 2), '```');
+      }
+    }
+  }
+
+  lines.push('');
+  return lines.join('\n');
 }

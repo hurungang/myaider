@@ -45,7 +45,7 @@ openclaw gateway restart
 2. **Configure the plugin** — either via CLI:
 
    ```bash
-   openclaw config set plugins.entries.myaider.config.url https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>
+   openclaw config set plugins.entries.myaider.config.url "https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>"
    ```
 
    or by editing `~/.openclaw/openclaw.json`:

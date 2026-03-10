@@ -24,7 +24,7 @@ npm install
 Get your personal MCP URL from **https://www.myaider.ai/mcp**, then set it via CLI:
 
 ```bash
-openclaw config set plugins.entries.myaider.config.url https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>
+openclaw config set plugins.entries.myaider.config.url "https://myaider.ai/api/v1/mcp?apiKey=<your-api-key>"
 ```
 
 Or add it manually to `~/.openclaw/openclaw.json`:

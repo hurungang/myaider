@@ -45,6 +45,18 @@ export const MOCK_SKILLS = [
     name: 'web-search',
     description: 'Search the web.',
     updated_at: '2026-01-01T00:00:00Z',
+    instructions: '## Usage\nUse this skill to search the web for information.',
+    tools: [
+      {
+        name: 'web_search',
+        description: 'Perform a web search query.',
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string', description: 'Search query' } },
+          required: ['query'],
+        },
+      },
+    ],
   },
 ];
 
