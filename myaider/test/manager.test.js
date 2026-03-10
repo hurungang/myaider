@@ -10,7 +10,8 @@ import assert from 'node:assert/strict';
 import { startMockServer, MOCK_TOOLS, MOCK_SKILLS, MOCK_SKILL_UPDATES } from './mock-server.js';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Import the classes under test.
@@ -472,5 +473,58 @@ describe('startup auto-sync', () => {
     );
     // No connection was established, but clean up the hook anyway
     await noUrlApi._hooks['gateway_stop']?.fn();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: static skills/myaider/SKILL.md format compliance
+// ---------------------------------------------------------------------------
+
+describe('static SKILL.md — OpenClaw frontmatter format compliance', () => {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const staticSkillPath = join(__dirname, '..', 'skills', 'myaider', 'SKILL.md');
+
+  let content;
+  before(async () => {
+    content = await readFile(staticSkillPath, 'utf-8');
+  });
+
+  it('frontmatter description is a single-line quoted string (not multi-line YAML)', () => {
+    // Multi-line YAML scalars use "> " or "| " indicators — these must not appear
+    assert.ok(
+      !content.match(/^description:\s*[>|]/m),
+      'description must not use YAML multi-line scalar indicators (> or |)'
+    );
+    // The description value must fit on the same line as the key
+    assert.ok(
+      content.match(/^description:\s*".+"/m),
+      'description must be a single-line double-quoted string'
+    );
+  });
+
+  it('frontmatter metadata is a single-line JSON object', () => {
+    // Must be on one line: metadata: {...}
+    assert.ok(
+      content.match(/^metadata:\s*\{.+\}/m),
+      'metadata must be a single-line JSON object'
+    );
+    // Must NOT span multiple lines (no indented sub-keys after metadata:)
+    assert.ok(
+      !content.match(/^metadata:\s*\n\s+/m),
+      'metadata must not use multi-line YAML object notation'
+    );
+  });
+
+  it('metadata is valid JSON', () => {
+    const match = content.match(/^metadata:\s*(\{.+\})\s*$/m);
+    assert.ok(match, 'metadata line must match single-line JSON pattern');
+    assert.doesNotThrow(
+      () => JSON.parse(match[1]),
+      'metadata value must be valid JSON'
+    );
+  });
+
+  it('skill name is present in frontmatter', () => {
+    assert.ok(content.match(/^name:\s*\S+/m), 'name field must be present');
   });
 });
