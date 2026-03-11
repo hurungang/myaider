@@ -1,4 +1,4 @@
-# myaider
+# openclaw-myaider
 
 **[MyAider.ai](https://www.myaider.ai)** is probably the first **skillful MCP hub**. Instead of relying on tool descriptions and schemas at runtime, MyAider uses **tool-based skills** — pre-built skill files that already contain all the instructions and tool details agents need. This means:
 
@@ -30,8 +30,8 @@ Or install from source:
 
 ```bash
 cd ~/.openclaw/extensions/
-git clone https://github.com/hurungang/myaider
-cd myaider/myaider
+git clone https://github.com/hurungang/openclaw-myaider.git
+cd openclaw-myaider/myaider
 npm install
 openclaw gateway restart
 ```
@@ -65,13 +65,31 @@ openclaw gateway restart
    }
    ```
 
-3. **Restart the gateway**:
+3. **Allow the plugin tool for your agent (OpenClaw 2026.3.2+)**.
+
+   Since OpenClaw 2026.3.2, default setups no longer start with broad coding/system tools unless explicitly configured. To use this plugin, allow the `myaider_mcp` tool in your agent config, for example:
+
+   ```json
+   {
+     "id": "main",
+     "tools": {
+       "alsoAllow": [
+         "myaider_mcp"
+       ],
+       "profile": "coding"
+     }
+   }
+   ```
+
+   Or in Gateway Web UI: **Agents -> <agent_name> -> Tools**, then allow `myaider_mcp`.
+
+4. **Restart the gateway**:
 
    ```bash
    openclaw gateway restart
    ```
 
-4. **Try it in OpenClaw chat**:
+5. **Try it in OpenClaw chat**:
 
    ```
    List the tools available in my MyAider MCP
