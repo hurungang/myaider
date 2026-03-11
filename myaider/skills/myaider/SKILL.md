@@ -1,13 +1,7 @@
 ---
 name: myaider
-description: >
-  Connect to the MyAider MCP server, invoke its tools, and manage MyAider skills.
-  Use this skill to list or call MyAider MCP tools, or to import, download, add,
-  upgrade, or sync MyAider skills into OpenClaw.
-metadata:
-  openclaw:
-    homepage: https://www.myaider.ai
-    emoji: "🤖"
+description: "Connect to the MyAider MCP server, invoke its tools, and manage MyAider skills. Use this skill to list or call MyAider MCP tools, or to import, download, add, upgrade, or sync MyAider skills into OpenClaw."
+metadata: {"openclaw":{"homepage":"https://www.myaider.ai","emoji":"🤖"}}
 ---
 
 # MyAider
