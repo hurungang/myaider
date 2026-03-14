@@ -23,32 +23,7 @@ This package provides the **myaider** plugin for [OpenClaw](https://openclaw.ai)
 
 The diagram below shows how an OpenClaw agent, skills, dehydrated tools, and the MyAider MCP hub connect to downstream HTTP MCP servers:
 
-```mermaid
-graph LR
-    subgraph OpenClaw["OpenClaw Agent"]
-        A["🤖 Agent"]
-        S["📚 Skills\n(pre-built instructions\n& tool knowledge)"]
-        D["🔧 Dehydrated Tools\n(myaider_mcp —\nno schema / description)"]
-    end
-
-    H["🌐 MyAider MCP Hub\n(myaider.ai)"]
-
-    subgraph Servers["HTTP MCP Servers"]
-        G["GitHub"]
-        SB["Supabase"]
-        LF["Logfire"]
-        C["Your Custom\nMCP Servers"]
-    end
-
-    A -- reads --> S
-    A -- calls --> D
-    S -. guides usage of .-> D
-    D -- "HTTP / SSE" --> H
-    H -- "API Key / OAuth" --> G
-    H -- "API Key / OAuth" --> SB
-    H -- "API Key / OAuth" --> LF
-    H -- "API Key / OAuth" --> C
-```
+![MyAider architecture diagram showing OpenClaw Agent connecting to MCP Hub and downstream servers](https://github.com/user-attachments/assets/821781b2-8e86-4936-8bc7-9936a4bb5912)
 
 ---
 
