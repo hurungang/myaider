@@ -10,6 +10,48 @@ This package provides the **myaider** plugin for [OpenClaw](https://openclaw.ai)
 
 ---
 
+## MyAider as an MCP Hub
+
+[MyAider.ai](https://www.myaider.ai) acts as a **universal MCP hub** — a central gateway that connects your AI agent to many MCP-compatible services through a single endpoint:
+
+- 🔗 **Pre-integrated services** — connect to popular MCP servers like **GitHub**, **Supabase**, **Logfire**, and more using your existing **API key** or **OAuth** credentials, all managed securely on the MyAider platform.
+- 🛠️ **Custom skills** — define and host your own skills on MyAider, making them instantly available to any agent connected to the hub.
+- 🔑 **Secure credential management** — OAuth flows and API keys are handled by MyAider, so your agent never needs to juggle individual service credentials.
+- ⚡ **Dehydrated tools** — tools exposed through the hub carry no descriptions or schemas, keeping your agent's context lean while skills provide all the necessary knowledge.
+
+### Architecture
+
+The diagram below shows how an OpenClaw agent, skills, dehydrated tools, and the MyAider MCP hub connect to downstream HTTP MCP servers:
+
+```mermaid
+graph LR
+    subgraph OpenClaw["OpenClaw Agent"]
+        A["🤖 Agent"]
+        S["📚 Skills\n(pre-built instructions\n& tool knowledge)"]
+        D["🔧 Dehydrated Tools\n(myaider_mcp —\nno schema / description)"]
+    end
+
+    H["🌐 MyAider MCP Hub\n(myaider.ai)"]
+
+    subgraph Servers["HTTP MCP Servers"]
+        G["GitHub"]
+        SB["Supabase"]
+        LF["Logfire"]
+        C["Your Custom\nMCP Servers"]
+    end
+
+    A -- reads --> S
+    A -- calls --> D
+    S -. guides usage of .-> D
+    D -- "HTTP / SSE" --> H
+    H -- "API Key / OAuth" --> G
+    H -- "API Key / OAuth" --> SB
+    H -- "API Key / OAuth" --> LF
+    H -- "API Key / OAuth" --> C
+```
+
+---
+
 ## What does the plugin do?
 
 - Implements a native MCP HTTP client so OpenClaw agents can talk to the MyAider MCP server.
